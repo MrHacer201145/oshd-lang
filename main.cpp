@@ -236,7 +236,7 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        std::cout << "Usage: <compiler binary> [files]" << std::endl;
+        std::cout << "Usage: " << argv[0] << " [files]" << std::endl;
         running = 0;
     }
 
