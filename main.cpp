@@ -2,6 +2,7 @@
 #include <variant>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 #include <sstream>
 #include <fstream>
@@ -15,13 +16,15 @@ std::vector<StackValue> memory;
 
 std::unordered_map<std::string, std::function<void()>> builtins;
 std::unordered_map<std::string, std::pair<int, std::function<void()>>> compile_words;
+std::unordered_set<std::string> compile_switchers = {"if", "{", "\""};
 
-std::unordered_map<std::string, std::string> functions;
+std::unordered_map<std::string, std::string> words;
 std::string body;
 
 int running = 1;
 int compiling = 0;
 
+// QOL Macros
 #define to_int(obj) std::get<int>(obj)
 #define to_str(obj) std::get<std::string>(obj).c_str()
 #define to_char(obj) std::get<char>(obj)
@@ -147,7 +150,7 @@ inline void init_builtins() {
     compile_words["}"] = {1, 
         []() {
             std::string name = to_str(pop());
-            functions[name] = body;
+            words[name] = body;
         }
     };
     compile_words["then"] = {2,
@@ -188,15 +191,16 @@ void run(std::string line) {
                         body += token;
                     }
             } else {
-                if (token == "if" || token == "{" || token == "\"") {
+                // If its a new compile mode swithcer
+                if (compile_switchers.count(token)) {
                     builtins[token]();
                 }
                 body += ' ';
                 body += token;
             }
         } else {
-            if (functions.count(token)) {
-                run(functions[token]);
+            if (words.count(token)) {
+                run(words[token]);
             } else if (builtins.count(token)) {
                 builtins[token]();
             } else {
@@ -204,12 +208,15 @@ void run(std::string line) {
                     size_t p;
                     int val = std::stoi(token, &p);
                     if (p == token.length()) {
+                        // Then it is number
                         push(std::stoi(token)); 
                     }
                     else {
+                        // If failed, then its string
                         push(token); 
                     }
                 } catch (...) {
+                    // Its 100% a string
                     push(token);
                 }
             }
